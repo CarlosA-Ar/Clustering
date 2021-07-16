@@ -1,0 +1,383 @@
+---
+title: "K-modas"
+author: "Carlos A. Ar."
+date: "`r format(Sys.Date(), '%d de %B del %Y')`"
+output:
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
+---
+
+```{=html}
+<style>
+  body {
+    font-size: 17px;
+  }
+</style>
+```
+```{r setup, include=FALSE}
+library(knitr)
+library(klaR)
+library(rmdformats)
+library(DT)
+library(ggplot2)
+library(gridExtra)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+# ¿De qué trata?
+
+1.  Tenemos un data-set con "$n$" observaciones, donde cada observación es de dimensión "$p$".
+
+2.  Las entradas de cada observación **son etiquetas** de una categoría.
+
+    **Ejemplo.**
+
+    $$
+    \begin{align*}
+    &(\text{mujer}, \text{soltera}, \text{empleada}) \\
+    & p = 3
+    \end{align*}
+    $$
+
+    -   La primer categoría es el sexo.
+
+    -   La segunda categoría es el estado civíl.
+
+    -   La tercer categoría es la situación laboral.
+
+3.  Las etiquetas se asocian con números naturales
+
+    **Ejemplo:**
+
+    ```{=tex}
+    \begin{align*}
+
+    \text{Sexo } &= \begin{cases}
+    1: \text{mujer} \\
+    2: \text{hombre}
+    \end{cases} 
+    \\
+    \text{Estado Civil} &= \begin{cases}
+    1: \text{Solter@} \\
+    2: \text{Casad@} \\
+    3: \text{Viud@}
+    \end{cases} 
+    \\
+    \text{Situación Laboral} &= \begin{cases}
+    1: \text{Emplead@} \\
+    2: \text{Desemplead@}
+    \end{cases} \\
+    \\
+    (1&, 1, 1)
+
+    \end{align*}
+    ```
+
+# Lo matemático
+
+Queremos saber **¿Cuánto se parece una observación *(como las mencionadas)* a otra?**
+
+## Construcción
+
+-   Sea $n_k$ el número de etiquetas de la $k-ésima$ categoría ($k \in \{1, ..., p\}$).
+
+-   Sea $x_i = (c_{i_1, 1}, c_{i_2, 2},..., c_{i_p, p})$ la $i-ésima$ observación del data set ($i \in \{1, ..., n\}$).
+
+    -   Donde $c_{i_k, k}$ representa la $i-ésima$ etiqueta correspondiente a la categoría $k$ ($1\leq i_k \leq n_k$).
+
+-   Fijamos $k$ *(una columna),* definimos la función $\delta(\cdot, \cdot)$ dada por:
+
+    $$
+    \delta(c_{i_k, k}, c_{j_k, k}) = 
+    \begin{cases} 
+    0, \text{ si } c_{i_k, k} = c_{j_k, k}, \\
+    1, \text{ si } c_{i_k, k} \neq c_{j_k, k}
+    \end{cases}
+    $$
+
+    Es decir, $0$ si las etiquetas de los renglones $i$ y $j$ son iguales *(dentro de la misma categoría)* y $1$ si son diferentes.
+
+    -   **Ejemplo**
+
+        $$
+        \delta(\text{hombre}, \text{mujer}) = 1  \iff \delta(2,1) = 1 \\
+        \delta(\text{casad@}, \text{casad@}) = 0  \iff \delta(2,1) = 0
+        $$
+
+### Disimilaridad *(Zhexue Huang 1998)* {#disim}
+
+Sean $i, j \in \{1, ..., n \}$. La disimilaridad entre las observaciones $i$ y $j$ es:
+
+$$
+d(x_i, x_j) := \sum_{k=1}^p \delta(c_{i_k, k}, c_{j_k, k})
+$$
+
+-   $d(x_i, x_j)$ "nos dice" el número de entradas diferentes entre los vectores $x_i$ y $x_j$.
+
+    -   Si $d(x_i, x_j)$ está cerca de $p$, entonces $x_i$ y $x_j$ "no se parecen".
+
+    -   Si $d(x_i, x_j)$ está cerca de $0$, entonces $x_i$ y $x_j$ "se parecen".
+
+## ¿Cómo se relaciona con $k-$modas?
+
+-   Queremos hacer $k$ grupos/clústers tales que en cada uno, las observaciones se parezcan entre sí.
+
+-   Para lo anterior, buscamos **un representante** que llamaremos **moda**.
+
+    -   Tal representante debe estar "lo más cerca posible" de las observaciones que están en el clúster.
+
+### Moda *(definición)*
+
+Decimos que el vector $Q = (q_1, ..., q_p)$ es moda de la muestra (o del conjunto de observaciones) $\mathbb{X} = \{ x_1, x_2, ..., x_n\}$ si
+
+$$
+D(\mathbb{X}, Q) := \sum_{i=1}^n d(x_i, Q)
+$$ es la mínima posible. *La moda minimiza la distancia.*
+
+-   Por definición, $Q$ no tiene que ser parte de la muestra.
+
+### ¿Cómo encontrar $Q$?
+
+Hay un teorema que garantiza que si contruimos un vector $Q$ de la siguiente forma, tal vector será la moda *(el vector moda)*.
+
+1.  Cuenta el número de veces que se repite cada etiqueta en cada categoría.
+2.  Observa el máximo de los anteriores.
+3.  Pon en el vector $Q$, la etiqueta correspondiente a dicho máximo.
+
+**Ejemplo.**
+
+| Observación | Sexo | Estado Civil | Situación Laboral |
+|:-----------:|:----:|:------------:|:-----------------:|
+|   **1.**    |  1   |      3       |         2         |
+|   **2.**    |  1   |      1       |         2         |
+|   **3.**    |  1   |      3       |         2         |
+|   **4.**    |  1   |      2       |         2         |
+|   **5.**    |  1   |      2       |         2         |
+|   **6.**    |  2   |      3       |         2         |
+|   **7.**    |  2   |      3       |         1         |
+|   **8.**    |  1   |      1       |         1         |
+|   **9.**    |  1   |      3       |         1         |
+|   **10.**   |  2   |      1       |         1         |
+
+Por lo tanto $Q = (1, 3, 2)$
+
+# Algoritmo $k-modas$
+
+<div>
+
+<p style="text-align:center;">
+
+![](km_1.png){width="150px"}
+
+</p>
+
+</div>
+
+1.  Toma $k$ representantes (modas iniciales).
+2.  "Junta" la observación que tenga la menor distancia ($d$) con uno de los $k$ representantes (modas).
+3.  Calcula la moda en cada grupo.
+4.  Repite el paso 2 y 3 hasta que todas las observaciones estén asignadas a un solo clúster.
+
+<div>
+
+<p style="text-align:center;">
+
+![](km_2.png){width="150px"}
+
+</p>
+
+</div>
+
+## Implementación en R
+
+Con la función `kmodes` se tiene lo necesario para obtener los clústers, las observaciones que pertenecen a cada clúster, las modas en cada clúster y otras cantidades.
+
+### Parámetros de `kmodes`
+
+-   `data`: una matriz de números enteros o un data frame de datos correspondientes a variables categóricas.
+
+-   `modes`:
+
+    -   Si se iguala a un número, este representará el número de clústers deseados *las modas iniciales se tomarán aleatoriamente del data-set.*
+
+    -   Si se iguala a un vector de observaciones, tales observaciones serán las modas iniciales.
+
+-   `iter.max`: el número máximo de iteraciones *(del algoritmo)* permitidas*.*
+
+-   `weighted`: es un booleano. Por defecto es `FALSE`, si es `TRUE` entonces la distancia no será la definida en el apartado de [Disimilaridad (Zhexue Huang 1998)](#disim) sino una ponderada.
+
+-   `fast`: es un valor lógico (`T/F`) que se usa para hacer más rápido el algoritmo cuando hay muchas observaciones (`T`).
+
+    -   Cuando no se usa, el algoritmo hace las asignaciones de cada observación y se recalcula la moda. Cuando se usa, se hacen las asignaciones con las modas iniciales para todas las observaciones y por último se recalcula la moda 😒.
+
+```{r, eval=FALSE, echo=TRUE}
+# Instalar klaR
+install.packages("klaR")
+
+# Cargar librería
+library(klaR)
+```
+
+### Ejemplo
+
+Consideremos una tabla de datos personales con cinco categorías:
+
++------------+-------------------+-------------------+----------------+---------------+
+| Sexo       | Estado Civil      | Situación Laboral | Grupo de edad  | Nivel escolar |
++:==========:+:=================:+:=================:+:==============:+:=============:+
+| 1.  Hombre | 1.  Casado(a)     | 1.  Desmpleado(a) | 1.  Adulto(a)  | 1.  Avanzado  |
++------------+-------------------+-------------------+----------------+---------------+
+| 2.  Mujer  | 2.  Viudo(a)      | 2.  Empleado(a)   | 2.  Anciano(a) | 2.  Básico    |
++------------+-------------------+-------------------+----------------+---------------+
+|            | 3.  Soltero(a)    |                   | 3.  Joven      | 3.  Medio     |
++------------+-------------------+-------------------+----------------+---------------+
+|            | 4.  Divorciado(a) |                   | 4.  Niño(a)    |               |
++------------+-------------------+-------------------+----------------+---------------+
+
+```{r, include=FALSE}
+set.seed(1)
+sexo<-as.factor(sample(c("hombre", "mujer"),2000,TRUE,c(0.5, 0.5)))
+
+estado_civil<-as.factor(sample(c("solterx", "casadx", "viudx", "divorciadx"),2000,TRUE,c(0.55, 0.3, 0.1, 0.05)))
+
+situ_labo<-as.factor(sample(c("empleadx", "desempleadx"),2000,TRUE,c(0.7, 0.3)))
+
+grpo_edad <- as.factor(sample(c("ninx", "joven", "adulto", "ancianx"),2000,TRUE,c(0.05, 0.35, 0.4, 0.2)))
+
+niv_educ <- as.factor(sample(c("basico", "medio", "avanzado"),2000,TRUE,c(0.6, 0.3, 0.1)))
+
+
+info_personal <- as.data.frame(cbind(sexo, estado_civil ,situ_labo, grpo_edad, niv_educ))
+
+info_personal$sexo <- as.factor(info_personal$sexo)
+info_personal$estado_civil <- as.factor(info_personal$estado_civil)
+info_personal$situ_labo <- as.factor(info_personal$situ_labo)
+info_personal$grpo_edad <- as.factor(info_personal$grpo_edad)
+info_personal$niv_educ <- as.factor(info_personal$niv_educ)
+```
+
+```{r, echo=FALSE, fig.align='center'}
+grid.arrange( 
+  
+ggplot(info_personal, aes(x = sexo)) + geom_bar(fill = c("#922B21", "#CD6155")) + ggtitle("Sexo") + theme_minimal(),
+
+ggplot(info_personal, aes(x = estado_civil)) + geom_bar(fill = c("#1B4F72", "#21618C", "#2874A6", "#D4E6F1")) + ggtitle("Estado Civil") + theme_minimal(),
+
+ggplot(info_personal, aes(x = situ_labo)) + geom_bar(fill = c("#F8C471", "#F39C12")) + ggtitle("Situación Laboral") + theme_minimal(),
+
+ggplot(info_personal, aes(x = grpo_edad)) + geom_bar(fill = c("#512E5F", "#9B59B6", "#D7BDE2", "#F5EEF8")) + ggtitle("Grupo Edad") + theme_minimal(),
+  
+  ggplot(info_personal, aes(x = niv_educ)) + geom_bar(fill = c("#0E6251", "#17A589", "#A2D9CE")) + ggtitle("Nivel Educativo") +  theme_minimal(),
+
+  ncol = 3, top  = "Información Personal")
+```
+
+```{r, echo=FALSE}
+DT::datatable(
+  info_personal, 
+  caption = "Datos personales",
+  rownames = FALSE,
+  extensions = "Buttons",
+  options = list(
+    dom = "Bfrtip",
+    buttons = c("csv")
+  )
+)
+```
+
+#### `kmodes`
+
+```{r}
+set.seed(1)
+k_modelo <- kmodes(data = info_personal, modes = 2, iter.max = 10)
+
+# Modas por clúster
+k_modelo$modes
+
+# Tamaño de los clústers
+k_modelo$size
+
+# Disimilaridad intra-cluster
+k_modelo$withindiff
+
+# Iteraciones del Algoritmo
+k_modelo$iterations
+```
+
+```{r, collapse=TRUE, echo=FALSE, fig.align='center'}
+grupo <- k_modelo$cluster
+info_personal_cluster <- cbind(info_personal, grupo)
+
+grid.arrange(# SEXO
+
+ggplot(info_personal_cluster, 
+       aes(x = sexo, y = situ_labo)) + 
+  geom_jitter(color = grupo) + theme_minimal(),
+
+ggplot(info_personal_cluster, 
+       aes(x = sexo, y = estado_civil)) + 
+  geom_jitter(color = grupo) + theme_minimal(),
+
+ggplot(info_personal_cluster, 
+       aes(x = sexo, y = grpo_edad)) + 
+  geom_jitter(color = grupo) + theme_minimal(), 
+
+ggplot(info_personal_cluster, 
+       aes(x = sexo, y = niv_educ)) + 
+  geom_jitter(color = grupo) + theme_minimal(),
+
+# ESTADO CIVIL
+
+ggplot(info_personal_cluster, 
+       aes(x = estado_civil, y = situ_labo)) + 
+  geom_jitter(color = grupo) + theme_minimal(),
+
+ggplot(info_personal_cluster, 
+       aes(x = estado_civil, y = grpo_edad)) + 
+  geom_jitter(color = grupo) + theme_minimal(),
+
+ggplot(info_personal_cluster, 
+       aes(x = estado_civil, y = niv_educ)) + 
+  geom_jitter(color = grupo) + theme_minimal(),
+
+# SITUACIÓN LABRAL
+
+ggplot(info_personal_cluster, 
+       aes(x = situ_labo, y = grpo_edad)) + 
+  geom_jitter(color = grupo) + theme_minimal(),
+
+ggplot(info_personal_cluster, 
+       aes(x = situ_labo, y = niv_educ)) + 
+  geom_jitter(color = grupo) + theme_minimal(),
+
+# GRUPO DE EDAD VS NIVEL EDUCATIVO
+
+ggplot(info_personal_cluster, 
+       aes(x = grpo_edad, y = niv_educ)) + 
+  geom_jitter(color = grupo) + theme_minimal(), ncol = 5)
+```
+
+Si deseas observar los cambios sin tener que codificar en tu consola de R, checa [esta aplicación.](https://carlos-arguello.shinyapps.io/k-modes/)
+
+# Referencias
+
+-   [Luisa Fernanda Pastrana Ramírez y Nataly Jineth Roa Peña](http://repository.ut.edu.co/bitstream/001/1512/1/RIUT-ABA-spa-2015-Clasificaci%C3%B3n%20mediante%20k-modas%20para%20el%20caso%20de%20variables%20categ%C3%B3ricas.pdf)
+
+-   [RDocumentation](https://www.rdocumentation.org/packages/klaR/versions/0.6-15/topics/kmodes)
+
+### Contactame
+
+💻[GitHub](https://github.com/CarlosA-Ar)
+
+🦜[Twitter](https://twitter.com/CarlosAAr6)
